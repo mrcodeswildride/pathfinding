@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pathfinding</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.6">
+    <link rel="stylesheet" href="stylesheet.css">
+</head>
+
+<body>
+    <h1>Pathfinding</h1>
+
+    <div id="mapPanel">
+        <div id="box">
+            <canvas id="canvas" width="500" height="400"></canvas>
+        </div>
+        <p>Click two cities to connect them.</p>
+    </div>
+
+    <div id="controlPanel">
+        <div id="addCitySection" class="inputSection">
+            <div>
+                <strong>Add city:</strong>
+            </div>
+            <div>
+                <input id="city" type="text" placeholder="city" />
+                <p id="addCityMessage">Click the box to add the city</p>
+            </div>
+            <div>
+                <p id="chooseMapMessage">or choose a map:</p>
+                <button id="sacramento">Sacramento</button>
+                <button id="bayArea">Bay Area</button>
+            </div>
+        </div>
+
+        <div class="inputSection">
+            <div>
+                <strong>Find path:</strong>
+            </div>
+            <div>
+                <input id="city1" type="text" placeholder="starting city" />
+                <input id="city2" type="text" placeholder="destination city" />
+                <button id="findShortestPath">Find shortest path</button>
+            </div>
+        </div>
+
+        <div>
+            <input id="showAll" type="checkbox">
+            <label for="showAll">Show all paths</label>
+        </div>
+
+        <div id="paths"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
