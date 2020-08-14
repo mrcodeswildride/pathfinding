@@ -1,376 +1,371 @@
-var box = document.getElementById("box");
-var canvas = document.getElementById("canvas");
-var context = canvas.getContext("2d");
+let mapBox = document.getElementById(`mapBox`)
+let canvas = document.getElementById(`canvas`)
+let context = canvas.getContext(`2d`)
 
-var cityInput = document.getElementById("city");
-var sacramentoButton = document.getElementById("sacramento");
-var bayAreaButton = document.getElementById("bayArea");
+let cityInput = document.getElementById(`cityInput`)
+let sacramentoButton = document.getElementById(`sacramentoButton`)
+let bayAreaButton = document.getElementById(`bayAreaButton`)
 
-var city1Input = document.getElementById("city1");
-var city2Input = document.getElementById("city2");
-var findShortestPathButton = document.getElementById("findShortestPath");
-var showAllCheckbox = document.getElementById("showAll");
+let city1Input = document.getElementById(`city1Input`)
+let city2Input = document.getElementById(`city2Input`)
+let pathButton = document.getElementById(`pathButton`)
 
-var pathsDiv = document.getElementById("paths");
+let showAllCheckbox = document.getElementById(`showAllCheckbox`)
+let pathsBox = document.getElementById(`pathsBox`)
 
-var nodes = {};
-var selectedCity = null;
-var shortestPath = null;
-var preDrawnPathCanvas = null;
+let nodes = {}
+let selectedCity
+let shortestPath
+let canvasImageData
 
-box.addEventListener("click", addCity);
-sacramentoButton.addEventListener("click", showSacramento);
-bayAreaButton.addEventListener("click", showBayArea);
+mapBox.addEventListener(`click`, addCity)
+sacramentoButton.addEventListener(`click`, showSacramento)
+bayAreaButton.addEventListener(`click`, showBayArea)
 
-city1Input.addEventListener("keydown", cityInputKeydown);
-city2Input.addEventListener("keydown", cityInputKeydown);
-findShortestPathButton.addEventListener("click", findShortestPath);
-showAllCheckbox.addEventListener("change", toggleHiddenPaths);
+pathButton.addEventListener(`click`, findShortestPath)
+showAllCheckbox.addEventListener(`change`, toggleShowAll)
 
-cityInput.focus();
+city1Input.addEventListener(`keydown`, keyPressed)
+city2Input.addEventListener(`keydown`, keyPressed)
+cityInput.focus()
 
 function addCity(event) {
-    var city = cityInput.value.trim();
+  let city = cityInput.value.trim()
 
-    if (city != "" && !nodes[city]) {
-        eraseShortestPath();
-        addNode(city, event.offsetX, event.offsetY);
-        cityInput.value = "";
-    }
+  if (city != `` && nodes[city] == null) {
+    eraseShortestPath()
+    addNode(city, event.offsetX, event.offsetY)
+    cityInput.value = ``
+  }
 
-    cityInput.focus();
+  cityInput.focus()
 }
 
 function selectCity(event) {
-    event.stopPropagation();
+  event.stopPropagation()
 
-    if (!selectedCity) {
-        eraseShortestPath();
+  if (selectedCity == null) {
+    eraseShortestPath()
 
-        this.classList.add("selected");
-        selectedCity = this;
-    }
-    else if (this == selectedCity) {
-        selectedCity.classList.remove("selected");
-        selectedCity = null;
+    selectedCity = this
+    selectedCity.classList.add(`selected`)
+  }
+  else if (selectedCity == this) {
+    selectedCity.classList.remove(`selected`)
+    selectedCity = null
+  }
+  else {
+    let selectedCityName = selectedCity.nextSibling.innerHTML
+    let thisCityName = this.nextSibling.innerHTML
+
+    if (lineExists(selectedCityName, thisCityName)) {
+      selectedCity.classList.remove(`selected`)
+      selectedCity = this
+      selectedCity.classList.add(`selected`)
     }
     else {
-        var selectedCityName = selectedCity.nextSibling.innerHTML;
-        var thisCityName = this.nextSibling.innerHTML;
+      connectNodes(selectedCityName, thisCityName)
 
-        if (lineExists(selectedCityName, thisCityName)) {
-            selectedCity.classList.remove("selected");
-            this.classList.add("selected");
-            selectedCity = this;
-        }
-        else {
-            connectNodes(selectedCityName, thisCityName);
-
-            selectedCity.classList.remove("selected");
-            selectedCity = null;
-        }
+      selectedCity.classList.remove(`selected`)
+      selectedCity = null
     }
-}
-
-function showSacramento() {
-    clearMap();
-
-    addNode("Folsom", 450, 227);
-    addNode("Fair Oaks", 340, 259);
-    addNode("Rancho Cordova", 216, 340);
-    addNode("Sacramento", 60, 340);
-    addNode("North Highlands", 147, 184);
-    addNode("Citrus Heights", 271, 135);
-    addNode("Roseville", 327, 80);
-    addNode("Rocklin", 403, 35);
-
-    connectNodes("Folsom", "Fair Oaks");
-    connectNodes("Fair Oaks", "Rancho Cordova");
-    connectNodes("Rancho Cordova", "Sacramento");
-    connectNodes("Sacramento", "North Highlands");
-    connectNodes("North Highlands", "Citrus Heights");
-    connectNodes("Citrus Heights", "Roseville");
-    connectNodes("Roseville", "Rocklin");
-    connectNodes("Rocklin", "Folsom");
-    connectNodes("Fair Oaks", "Roseville");
-    connectNodes("Fair Oaks", "Citrus Heights");
-    connectNodes("Rancho Cordova", "Citrus Heights");
-    connectNodes("Rancho Cordova", "North Highlands");
-
-    city1Input.value = "";
-    city2Input.value = "";
-    city1Input.focus();
-}
-
-function showBayArea() {
-    clearMap();
-
-    addNode("San Jose", 450, 340);
-    addNode("Mountain View", 302, 319);
-    addNode("Palo Alto", 210, 279);
-    addNode("San Mateo", 104, 199);
-    addNode("San Francisco", 60, 77);
-    addNode("Oakland", 143, 35);
-    addNode("Hayward", 255, 108);
-    addNode("Fremont", 364, 200);
-
-    connectNodes("San Jose", "Mountain View");
-    connectNodes("Mountain View", "Palo Alto");
-    connectNodes("Palo Alto", "San Mateo");
-    connectNodes("San Mateo", "San Francisco");
-    connectNodes("San Francisco", "Oakland");
-    connectNodes("Oakland", "Hayward");
-    connectNodes("Hayward", "Fremont");
-    connectNodes("Fremont", "San Jose");
-    connectNodes("Palo Alto", "Fremont");
-    connectNodes("San Mateo", "Hayward");
-
-    city1Input.value = "";
-    city2Input.value = "";
-    city1Input.focus();
+  }
 }
 
 function addNode(nodeName, x, y) {
-    var cityDiv = document.createElement("div");
-    cityDiv.classList.add("city");
-    cityDiv.addEventListener("click", selectCity);
+  makeCityDiv(nodeName, x, y)
 
-    var cityNameDiv = document.createElement("div");
-    cityNameDiv.classList.add("cityName");
-    cityNameDiv.innerHTML = nodeName;
-
-    box.appendChild(cityDiv);
-    box.appendChild(cityNameDiv);
-
-    cityDiv.style.left = (x - cityDiv.offsetWidth / 2) + "px";
-    cityDiv.style.top = (y - cityDiv.offsetHeight / 2) + "px";
-
-    cityNameDiv.style.left = (x - cityNameDiv.offsetWidth / 2) + "px";
-    cityNameDiv.style.top = (y + 12) + "px";
-
-    nodes[nodeName] = [];
+  nodes[nodeName] = []
 }
 
 function connectNodes(nodeName1, nodeName2) {
-    var node1 = getCityDiv(nodeName1);
-    var node2 = getCityDiv(nodeName2);
+  let city1Div = getCityDiv(nodeName1)
+  let city2Div = getCityDiv(nodeName2)
 
-    drawLine(node1, node2);
+  drawLine(city1Div, city2Div)
 
-    var a = node2.offsetLeft - node1.offsetLeft;
-    var b = node2.offsetTop - node1.offsetTop;
-    var lineLength = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+  let a = city2Div.offsetLeft - city1Div.offsetLeft
+  let b = city2Div.offsetTop - city1Div.offsetTop
+  let lineLength = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2))
 
-    nodes[nodeName1].push({
-        to: nodeName2,
-        length: lineLength
-    });
+  nodes[nodeName1].push({
+    to: nodeName2,
+    length: lineLength
+  })
 
-    nodes[nodeName2].push({
-        to: nodeName1,
-        length: lineLength
-    });
+  nodes[nodeName2].push({
+    to: nodeName1,
+    length: lineLength
+  })
 }
 
-function clearMap() {
-    while (box.querySelectorAll("div").length > 0) {
-        box.removeChild(box.querySelectorAll("div")[0]);
+function lineExists(nodeName1, nodeName2) {
+  for (let line of nodes[nodeName1]) {
+    if (line.to == nodeName2) {
+      return true
     }
+  }
 
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    pathsDiv.innerHTML = "";
-
-    nodes = {};
-    selectedCity = null;
-    shortestPath = null;
-    preDrawnPathCanvas = null;
-}
-
-function cityInputKeydown(event) {
-    if (event.keyCode == 13) {
-        findShortestPath();
-    }
+  return false
 }
 
 function findShortestPath() {
-    var city1 = city1Input.value.trim();
-    var city2 = city2Input.value.trim();
+  let city1 = city1Input.value.trim()
+  let city2 = city2Input.value.trim()
 
-    if (city1 != "" && city2 != "") {
-        eraseShortestPath();
+  if (city1 != `` && city2 != ``) {
+    eraseShortestPath()
 
-        if (!nodes[city1]) {
-            var invalidStartingCityMessage = document.createElement("p");
-            invalidStartingCityMessage.innerHTML = "Starting city does not exist.";
-            pathsDiv.appendChild(invalidStartingCityMessage);
-        }
-        else if (!nodes[city2]) {
-            var invalidDestinationCityMessage = document.createElement("p");
-            invalidDestinationCityMessage.innerHTML = "Destination city does not exist.";
-            pathsDiv.appendChild(invalidDestinationCityMessage);
-        }
-        else {
-            var paths = [];
-            findPaths(city1, city2, [city1], 0, paths);
-
-            shortestPath = {
-                cities: [],
-                distance: Infinity
-            };
-
-            for (var i = 0; i < paths.length; i++) {
-                if (paths[i].distance < shortestPath.distance) {
-                    shortestPath = paths[i];
-                }
-            }
-
-            if (paths.length == 0) {
-                var noPathMessage = document.createElement("p");
-                noPathMessage.innerHTML = "No path found.";
-                pathsDiv.appendChild(noPathMessage);
-            }
-            else {
-                for (var i = 0; i < paths.length; i++) {
-                    var pathDiv = document.createElement("div");
-                    pathDiv.classList.add("path");
-
-                    if (paths[i] == shortestPath) {
-                        pathDiv.classList.add("shortest");
-                    }
-                    else if (!showAllCheckbox.checked) {
-                        pathDiv.classList.add("hidden");
-                    }
-
-                    for (var j = 0; j < paths[i].cities.length; j++) {
-                        pathDiv.innerHTML += paths[i].cities[j];
-
-                        if (j < paths[i].cities.length - 1) {
-                            pathDiv.innerHTML += " - ";
-                        }
-                    }
-
-                    pathDiv.innerHTML += " (" + paths[i].distance.toFixed(0) + ")";
-                    pathsDiv.appendChild(pathDiv);
-                }
-            }
-
-            drawShortestPath();
-        }
+    if (nodes[city1] == null) {
+      pathsBox.innerHTML = `Starting city does not exist.`
     }
-}
-
-function toggleHiddenPaths() {
-    var pathDivs = document.querySelectorAll(".path");
-
-    for (var i = 0; i < pathDivs.length; i++) {
-        if (showAllCheckbox.checked) {
-            pathDivs[i].classList.remove("hidden");
-        }
-        else if (!pathDivs[i].classList.contains("shortest")) {
-            pathDivs[i].classList.add("hidden");
-        }
+    else if (nodes[city2] == null) {
+      pathsBox.innerHTML = `Destination city does not exist.`
     }
+    else {
+      let paths = []
+      findPaths(city1, city2, [city1], 0, paths)
+
+      if (paths.length == 0) {
+        pathsBox.innerHTML = `No path found.`
+      }
+      else {
+        shortestPath = getShortestPath(paths)
+
+        for (let path of paths) {
+          makePathDiv(path)
+        }
+
+        drawShortestPath()
+      }
+    }
+  }
 }
 
 function findPaths(city1, city2, path, distanceTraveled, paths) {
-    if (city1 == city2) {
-        paths.push({
-            cities: path,
-            distance: distanceTraveled
-        });
+  if (city1 == city2) {
+    paths.push({
+      cities: path,
+      distance: distanceTraveled
+    })
+  }
+  else {
+    for (let line of nodes[city1]) {
+      let neighbor = line.to
+
+      if (!path.includes(neighbor)) {
+        let pathCopy = path.slice()
+        pathCopy.push(neighbor)
+
+        findPaths(neighbor, city2, pathCopy, distanceTraveled + line.length, paths)
+      }
     }
-    else {
-        var city1Node = nodes[city1];
-
-        for (var i = 0; i < city1Node.length; i++) {
-            var line = city1Node[i];
-            var neighbor = line.to;
-
-            if (!path.includes(neighbor)) {
-                var pathCopy = path.slice();
-                pathCopy.push(neighbor);
-
-                findPaths(neighbor, city2, pathCopy, distanceTraveled + line.length, paths);
-            }
-        }
-    }
+  }
 }
 
-function lineExists(city1, city2) {
-    var city1Node = nodes[city1];
+function getShortestPath(paths) {
+  let shortest = paths[0]
 
-    for (var i = 0; i < city1Node.length; i++) {
-        var line = city1Node[i];
-
-        if (line.to == city2) {
-            return true;
-        }
+  for (let path of paths) {
+    if (path.distance < shortest.distance) {
+      shortest = path
     }
+  }
 
-    return false;
+  return shortest
 }
 
-function drawLine(city1Div, city2Div, color, width) {
-    var city1X = city1Div.offsetLeft + city1Div.offsetWidth / 2;
-    var city1Y = city1Div.offsetTop + city1Div.offsetHeight / 2;
-    var city2X = city2Div.offsetLeft + city2Div.offsetWidth / 2;
-    var city2Y = city2Div.offsetTop + city2Div.offsetHeight / 2;
+function toggleShowAll() {
+  let pathDivs = pathsBox.querySelectorAll(`.path`)
 
-    context.beginPath();
-    context.moveTo(city1X, city1Y);
-    context.lineTo(city2X, city2Y);
-    context.strokeStyle = color ? color : "black";
-    context.lineWidth = width ? width : "1";
-    context.stroke();
-    context.closePath();
+  for (let pathDiv of pathDivs) {
+    if (showAllCheckbox.checked) {
+      pathDiv.classList.remove(`hidden`)
+    }
+    else if (!pathDiv.classList.contains(`shortest`)) {
+      pathDiv.classList.add(`hidden`)
+    }
+  }
 }
 
-function drawShortestPath() {
-    preDrawnPathCanvas = context.getImageData(0, 0, canvas.width, canvas.height);
+function makeCityDiv(city, x, y) {
+  let cityDiv = document.createElement(`div`)
+  cityDiv.classList.add(`city`)
+  cityDiv.addEventListener(`click`, selectCity)
 
-    for (var i = 0; i < shortestPath.cities.length; i++) {
-        var cityDiv = getCityDiv(shortestPath.cities[i]);
-        cityDiv.classList.add("highlighted");
+  let cityNameDiv = document.createElement(`div`)
+  cityNameDiv.classList.add(`cityName`)
+  cityNameDiv.innerHTML = city
 
-        if (i < shortestPath.cities.length - 1) {
-            var city2Div = getCityDiv(shortestPath.cities[i + 1]);
-            drawLine(cityDiv, city2Div, "#00a2e8", "5");
-        }
-    }
-}
+  mapBox.appendChild(cityDiv)
+  mapBox.appendChild(cityNameDiv)
 
-function eraseShortestPath() {
-    pathsDiv.innerHTML = "";
+  cityDiv.style.left = `${x - cityDiv.offsetWidth / 2}px`
+  cityDiv.style.top = `${y - cityDiv.offsetHeight / 2}px`
 
-    if (selectedCity) {
-        selectedCity.classList.remove("selected");
-        selectedCity = null;
-    }
-
-    if (shortestPath) {
-        for (var i = 0; i < shortestPath.cities.length; i++) {
-            var cityDiv = getCityDiv(shortestPath.cities[i]);
-            cityDiv.classList.remove("highlighted");
-        }
-
-        context.putImageData(preDrawnPathCanvas, 0, 0);
-
-        shortestPath = null;
-        preDrawnPathCanvas = null;
-    }
+  cityNameDiv.style.left = `${x - cityNameDiv.offsetWidth / 2}px`
+  cityNameDiv.style.top = `${y + 12}px`
 }
 
 function getCityDiv(city) {
-    var cityDivs = document.querySelectorAll(".city");
+  let cityDivs = mapBox.querySelectorAll(`.city`)
 
-    for (var i = 0; i < cityDivs.length; i++) {
-        var cityNameDiv = cityDivs[i].nextSibling;
+  for (let cityDiv of cityDivs) {
+    let cityNameDiv = cityDiv.nextSibling
 
-        if (cityNameDiv.innerHTML == city) {
-            return cityDivs[i];
-        }
+    if (cityNameDiv.innerHTML == city) {
+      return cityDiv
+    }
+  }
+
+  return null
+}
+
+function makePathDiv(path) {
+  let pathDiv = document.createElement(`div`)
+  pathDiv.classList.add(`path`)
+
+  if (path == shortestPath) {
+    pathDiv.classList.add(`shortest`)
+  }
+  else if (!showAllCheckbox.checked) {
+    pathDiv.classList.add(`hidden`)
+  }
+
+  let pathString = path.cities.join(` - `)
+  let pathDistance = path.distance.toFixed(0)
+  pathDiv.innerHTML = `${pathString} (${pathDistance})`
+
+  pathsBox.appendChild(pathDiv)
+}
+
+function drawShortestPath() {
+  canvasImageData = context.getImageData(0, 0, canvas.width, canvas.height)
+
+  for (let i = 0; i < shortestPath.cities.length; i++) {
+    let cityDiv = getCityDiv(shortestPath.cities[i])
+    cityDiv.classList.add(`highlighted`)
+
+    if (i < shortestPath.cities.length - 1) {
+      let city2Div = getCityDiv(shortestPath.cities[i + 1])
+      drawLine(cityDiv, city2Div, `#00a2e8`, 5)
+    }
+  }
+}
+
+function eraseShortestPath() {
+  pathsBox.innerHTML = ``
+
+  if (selectedCity != null) {
+    selectedCity.classList.remove(`selected`)
+    selectedCity = null
+  }
+
+  if (shortestPath != null) {
+    for (let city of shortestPath.cities) {
+      let cityDiv = getCityDiv(city)
+      cityDiv.classList.remove(`highlighted`)
     }
 
-    return null;
+    context.putImageData(canvasImageData, 0, 0)
+
+    shortestPath = null
+    canvasImageData = null
+  }
+}
+
+function drawLine(city1Div, city2Div, color, width) {
+  let city1X = city1Div.offsetLeft + city1Div.offsetWidth / 2
+  let city1Y = city1Div.offsetTop + city1Div.offsetHeight / 2
+  let city2X = city2Div.offsetLeft + city2Div.offsetWidth / 2
+  let city2Y = city2Div.offsetTop + city2Div.offsetHeight / 2
+
+  context.beginPath()
+  context.moveTo(city1X, city1Y)
+  context.lineTo(city2X, city2Y)
+  context.strokeStyle = color ? color : `black`
+  context.lineWidth = width ? width : `1`
+  context.stroke()
+  context.closePath()
+}
+
+function clearMap() {
+  pathsBox.innerHTML = ``
+
+  let mapDivs = mapBox.querySelectorAll(`div`)
+
+  for (let mapDiv of mapDivs) {
+    mapDiv.remove()
+  }
+
+  context.clearRect(0, 0, canvas.width, canvas.height)
+
+  nodes = {}
+  selectedCity = null
+  shortestPath = null
+  canvasImageData = null
+}
+
+function keyPressed(event) {
+  if (event.keyCode == 13) {
+    findShortestPath()
+  }
+}
+
+function showSacramento() {
+  clearMap()
+
+  addNode(`Folsom`, 450, 227)
+  addNode(`Fair Oaks`, 340, 259)
+  addNode(`Rancho Cordova`, 216, 340)
+  addNode(`Sacramento`, 60, 340)
+  addNode(`North Highlands`, 147, 184)
+  addNode(`Citrus Heights`, 271, 135)
+  addNode(`Roseville`, 327, 80)
+  addNode(`Rocklin`, 403, 35)
+
+  connectNodes(`Folsom`, `Fair Oaks`)
+  connectNodes(`Fair Oaks`, `Rancho Cordova`)
+  connectNodes(`Rancho Cordova`, `Sacramento`)
+  connectNodes(`Sacramento`, `North Highlands`)
+  connectNodes(`North Highlands`, `Citrus Heights`)
+  connectNodes(`Citrus Heights`, `Roseville`)
+  connectNodes(`Roseville`, `Rocklin`)
+  connectNodes(`Rocklin`, `Folsom`)
+  connectNodes(`Fair Oaks`, `Roseville`)
+  connectNodes(`Fair Oaks`, `Citrus Heights`)
+  connectNodes(`Rancho Cordova`, `Citrus Heights`)
+  connectNodes(`Rancho Cordova`, `North Highlands`)
+
+  city1Input.value = ``
+  city2Input.value = ``
+  city1Input.focus()
+}
+
+function showBayArea() {
+  clearMap()
+
+  addNode(`San Jose`, 450, 340)
+  addNode(`Mountain View`, 302, 319)
+  addNode(`Palo Alto`, 210, 279)
+  addNode(`San Mateo`, 104, 199)
+  addNode(`San Francisco`, 60, 77)
+  addNode(`Oakland`, 143, 35)
+  addNode(`Hayward`, 255, 108)
+  addNode(`Fremont`, 364, 200)
+
+  connectNodes(`San Jose`, `Mountain View`)
+  connectNodes(`Mountain View`, `Palo Alto`)
+  connectNodes(`Palo Alto`, `San Mateo`)
+  connectNodes(`San Mateo`, `San Francisco`)
+  connectNodes(`San Francisco`, `Oakland`)
+  connectNodes(`Oakland`, `Hayward`)
+  connectNodes(`Hayward`, `Fremont`)
+  connectNodes(`Fremont`, `San Jose`)
+  connectNodes(`Palo Alto`, `Fremont`)
+  connectNodes(`San Mateo`, `Hayward`)
+
+  city1Input.value = ``
+  city2Input.value = ``
+  city1Input.focus()
 }
