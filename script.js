@@ -49,12 +49,10 @@ function selectCity(event) {
 
     selectedCity = this
     selectedCity.classList.add(`selected`)
-  }
-  else if (selectedCity == this) {
+  } else if (selectedCity == this) {
     selectedCity.classList.remove(`selected`)
     selectedCity = null
-  }
-  else {
+  } else {
     let selectedCityName = selectedCity.nextSibling.innerHTML
     let thisCityName = this.nextSibling.innerHTML
 
@@ -62,8 +60,7 @@ function selectCity(event) {
       selectedCity.classList.remove(`selected`)
       selectedCity = this
       selectedCity.classList.add(`selected`)
-    }
-    else {
+    } else {
       connectNodes(selectedCityName, thisCityName)
 
       selectedCity.classList.remove(`selected`)
@@ -86,16 +83,16 @@ function connectNodes(nodeName1, nodeName2) {
 
   let a = city2Div.offsetLeft - city1Div.offsetLeft
   let b = city2Div.offsetTop - city1Div.offsetTop
-  let lineLength = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2))
+  let lineLength = Math.sqrt(a * a + b * b)
 
   nodes[nodeName1].push({
     to: nodeName2,
-    length: lineLength
+    length: lineLength,
   })
 
   nodes[nodeName2].push({
     to: nodeName1,
-    length: lineLength
+    length: lineLength,
   })
 }
 
@@ -113,31 +110,26 @@ function findShortestPath() {
   let city1 = city1Input.value.trim()
   let city2 = city2Input.value.trim()
 
-  if (city1 != `` && city2 != ``) {
-    eraseShortestPath()
+  eraseShortestPath()
 
-    if (nodes[city1] == null) {
-      pathsBox.innerHTML = `Starting city does not exist.`
-    }
-    else if (nodes[city2] == null) {
-      pathsBox.innerHTML = `Destination city does not exist.`
-    }
-    else {
-      let paths = []
-      findPaths(city1, city2, [city1], 0, paths)
+  if (nodes[city1] == null) {
+    pathsBox.innerHTML = `Starting city does not exist.`
+  } else if (nodes[city2] == null) {
+    pathsBox.innerHTML = `Destination city does not exist.`
+  } else {
+    let paths = []
+    findPaths(city1, city2, [city1], 0, paths)
 
-      if (paths.length == 0) {
-        pathsBox.innerHTML = `No path found.`
+    if (paths.length == 0) {
+      pathsBox.innerHTML = `No path found.`
+    } else {
+      shortestPath = getShortestPath(paths)
+
+      for (let path of paths) {
+        makePathDiv(path)
       }
-      else {
-        shortestPath = getShortestPath(paths)
 
-        for (let path of paths) {
-          makePathDiv(path)
-        }
-
-        drawShortestPath()
-      }
+      drawShortestPath()
     }
   }
 }
@@ -146,10 +138,9 @@ function findPaths(city1, city2, path, distanceTraveled, paths) {
   if (city1 == city2) {
     paths.push({
       cities: path,
-      distance: distanceTraveled
+      distance: distanceTraveled,
     })
-  }
-  else {
+  } else {
     for (let line of nodes[city1]) {
       let neighbor = line.to
 
@@ -181,8 +172,7 @@ function toggleShowAll() {
   for (let pathDiv of pathDivs) {
     if (showAllCheckbox.checked) {
       pathDiv.classList.remove(`hidden`)
-    }
-    else if (!pathDiv.classList.contains(`shortest`)) {
+    } else if (!pathDiv.classList.contains(`shortest`)) {
       pathDiv.classList.add(`hidden`)
     }
   }
@@ -227,8 +217,7 @@ function makePathDiv(path) {
 
   if (path == shortestPath) {
     pathDiv.classList.add(`shortest`)
-  }
-  else if (!showAllCheckbox.checked) {
+  } else if (!showAllCheckbox.checked) {
     pathDiv.classList.add(`hidden`)
   }
 

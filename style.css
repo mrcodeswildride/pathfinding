@@ -18,6 +18,7 @@ body {
   border: 3px solid black;
   position: relative;
   user-select: none;
+  touch-action: manipulation;
 }
 
 .city {
@@ -25,7 +26,7 @@ body {
   height: 15px;
   background-color: black;
   border: 1px solid black;
-  border-radius: 15px;
+  border-radius: 50%;
   position: absolute;
   cursor: pointer;
 }
@@ -63,10 +64,10 @@ p {
 #cityInput,
 #addCityParagraph,
 #chooseMapParagraph,
-#sacramentoButton
+#sacramentoButton,
 #bayAreaButton {
   display: inline-block;
-  vertical-align: top; 
+  vertical-align: top;
 }
 
 input[type="text"],
